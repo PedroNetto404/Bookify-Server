@@ -18,11 +18,18 @@ public record Currency
     
     public static Currency FromCode(string code) => 
         All.Single(x => x.Code == code);
-    
+
+    public static Currency FromId(int id) => 
+        All.Single(x => x.Id == id);
+
     public static readonly IReadOnlyCollection<Currency> All = new[]
     {
         USD,
         EUR,
         BRL
     };
+
+    public static implicit operator Currency(string code) => FromCode(code);
+
+    public static implicit operator Currency(int id) => FromId(id);
 }

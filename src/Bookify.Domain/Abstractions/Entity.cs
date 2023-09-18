@@ -1,25 +1,20 @@
 namespace Bookify.Domain.Abstractions;
 
-public abstract class Entity
+public abstract class Entity<TId> 
+    : IEquatable<Entity<TId>>
+    where TId : notnull
 {
-    protected Entity(Guid identifier)
-    {
-        Identifier = identifier;
-    }
+    protected Entity(TId id) => Id = id;
 
-    public Guid Identifier { get; private set; }
+    public TId Id { get; protected set; }
 
-    private readonly List<IDomainEvent> _domainEvents = new();
+    public bool Equals(Entity<TId>? other) => other is not null && Id.Equals(other.Id);
 
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.ToList().AsReadOnly();
+    public override bool Equals(object? obj) => obj is Entity<TId> entity && Equals(entity);
 
-    protected void RaiseDomainEvents(IDomainEvent domainEvent)
-    {
-        _domainEvents.Add(domainEvent);
-    }
+    public override int GetHashCode() => Id.GetHashCode() * 17;
 
-    public void ClearDomainEvents()
-    {
-        _domainEvents.Clear();
-    }
+    public static bool operator ==(Entity<TId>? left, Entity<TId>? right) => Equals(left, right);
+
+    public static bool operator !=(Entity<TId>? left, Entity<TId>? right) => !(left == right);
 }

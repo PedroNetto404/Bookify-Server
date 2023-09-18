@@ -8,12 +8,12 @@ namespace Bookify.Application.Bookings.ReserveBooking;
 
 internal sealed class BookingReservedEventHandler : INotificationHandler<BookingReservedEvent>
 {
-    private readonly IUserRepository _userRepository;
+    private readonly ITenantRepository _tenantRepository;
     private readonly IBookingRepository _bookingRepository;
     private readonly IEmailService _emailService;
-    public BookingReservedEventHandler(IUserRepository userRepository, IBookingRepository bookingRepository)
+    public BookingReservedEventHandler(ITenantRepository tenantRepository, IBookingRepository bookingRepository)
     {
-        _userRepository = userRepository;
+        _tenantRepository = tenantRepository;
         _bookingRepository = bookingRepository;
     }
 
@@ -22,7 +22,7 @@ internal sealed class BookingReservedEventHandler : INotificationHandler<Booking
         var booking = await _bookingRepository.GetByIdAsync(notification.BookingId);
         if(booking is null) return;
 
-        var user = await _userRepository.GetByIdAsync(booking.UserId);
+        var user = await _tenantRepository.GetByIdAsync(booking.TenantId);
         if(user is null) return;
 
         await _emailService.SendAsync(

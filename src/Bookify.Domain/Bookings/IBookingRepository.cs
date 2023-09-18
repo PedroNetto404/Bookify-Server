@@ -4,7 +4,7 @@ namespace Bookify.Domain.Bookings;
 
 public interface IBookingRepository
 {
-    void Add(Booking booking);
-    Task<Booking?> GetByIdAsync(Guid bookingId);
+    Task AddAsync(Booking booking);
+    Task<Booking?> GetByIdAsync(BookingId bookingId);
     Task<bool> IsOverlappingAsync(Apartment apartment, DateRange duration);
 }

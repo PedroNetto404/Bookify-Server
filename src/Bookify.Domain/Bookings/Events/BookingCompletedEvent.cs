@@ -2,4 +2,4 @@ using Bookify.Domain.Abstractions;
 
 namespace Bookify.Domain.Bookings.Events;
 
-public sealed record BookingCompletedEvent(Guid BookingId) : IDomainEvent;
+public sealed record BookingCompletedEvent(BookingId BookingId) : IDomainEvent;

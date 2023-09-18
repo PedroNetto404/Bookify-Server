@@ -3,25 +3,17 @@ using Bookify.Domain.Abstractions;
 namespace Bookify.Domain.Bookings;
 public record DateRange
 {
-    private DateRange() {}
+    private DateRange(DateOnly start, DateOnly end) =>
+        (StartUtc, EndUtc) = (start, end);
 
-    public DateOnly Start { get; init; }
+    public DateOnly StartUtc { get; init; }
 
-    public DateOnly End { get; init; }
+    public DateOnly EndUtc { get; init; }
 
-    public int LengthInDays => End.DayNumber - Start.DayNumber;
+    public int LengthInDays => EndUtc.DayNumber - StartUtc.DayNumber;
 
-    public static Result<DateRange> Create(DateOnly start, DateOnly end)
-    {
-        if (start > end)
-        {
-            return Result.Failure<DateRange>(BookingErrors.InvalidDateRange);
-        }
-
-        return new DateRange
-        {
-            Start = start,
-            End = end
-        };
-    }
+    public static Result<DateRange> Create(DateOnly start, DateOnly end) =>
+        start < end
+            ? new DateRange(start, end)
+            : Result.Failure<DateRange>(BookingErrors.InvalidDateRange);
 }

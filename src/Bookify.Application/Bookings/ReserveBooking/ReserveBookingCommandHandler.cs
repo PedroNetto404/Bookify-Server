@@ -11,7 +11,7 @@ namespace Bookify.Application.Bookings.ReserveBooking;
 internal sealed class ReserveBookingCommandHandler : ICommandHandler<ReserveBookingCommand, Guid>
 {
     private readonly IApartmentRepository _apartmentRepository;
-    private readonly IUserRepository _userRepository;
+    private readonly ITenantRepository _tenantRepository;
     private readonly IBookingRepository _bookingRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -19,14 +19,14 @@ internal sealed class ReserveBookingCommandHandler : ICommandHandler<ReserveBook
 
     public ReserveBookingCommandHandler(
         IApartmentRepository apartmentRepository,
-        IUserRepository userRepository,
+        ITenantRepository tenantRepository,
         IBookingRepository bookingRepository,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         PricingService pricingService)
     {
         _apartmentRepository = apartmentRepository;
-        _userRepository = userRepository;
+        _tenantRepository = tenantRepository;
         _bookingRepository = bookingRepository;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
@@ -35,7 +35,7 @@ internal sealed class ReserveBookingCommandHandler : ICommandHandler<ReserveBook
 
     public async Task<Result<Guid>> Handle(ReserveBookingCommand request, CancellationToken cancellationToken)
     {   
-        var user = await _userRepository.GetByIdAsync(request.UserId);
+        var user = await _tenantRepository.GetByIdAsync(request.UserId);
         if(user is null)
         {
             return Result.Failure<Guid>(BookingErrors.NotFound);
@@ -62,13 +62,13 @@ internal sealed class ReserveBookingCommandHandler : ICommandHandler<ReserveBook
             apartment,
             request.UserId,
             duration,
-            _dateTimeProvider.Now,
+            _dateTimeProvider.UtcNow,
             _pricingService);
 
-        _bookingRepository.Add(booking);
+        _bookingRepository.AddAsync(booking);
 
         await _unitOfWork.CommitAsync(cancellationToken);
 
-        return Result.Success(booking.Identifier);
+        return Result.Success(booking.Id);
     }
 }

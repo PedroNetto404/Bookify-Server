@@ -2,7 +2,7 @@ namespace Bookify.Domain.Apartments;
 
 public interface IApartmentRepository
 {
-    Task<Apartment?> GetByIdAsync(Guid apartmentId, CancellationToken cancellationToken = default);
+    Task<Apartment?> GetByIdAsync(ApartmentId apartmentId);
 
-    void Add(Apartment apartment);
+    Task AddAsync(Apartment apartment);
 }

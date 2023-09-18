@@ -1,27 +1,27 @@
 using Bookify.Domain.Abstractions;
 using Bookify.Domain.Apartments;
 using Bookify.Domain.Bookings.Events;
-using Bookify.Domain.Bookings.ValueObjects;
+using Bookify.Domain.Users;
 
 namespace Bookify.Domain.Bookings;
-public sealed class Booking : Entity
+
+public sealed class Booking : AggregateRoot<BookingId>
 {
     private Booking(
-        Guid identifier,
-        Guid apartmentId,
-        Guid userId,
+        ApartmentId apartmentId,
+        TenantId tenantId,
         DateRange duration,
-        Money pricePorPeriod,
+        Money pricePerPeriod,
         Money clearingFee,
         Money amenitiesUpCharge,
         Money totalPrice,
         BookingStatus status,
-        DateTime createdOnUtc) : base(identifier)
+        DateTime createdOnUtc) : base(BookingId.New())
     {
         ApartmentId = apartmentId;
-        UserId = userId;
+        TenantId = tenantId;
         Duration = duration;
-        PricePorPeriod = pricePorPeriod;
+        PricePerPeriod = pricePerPeriod;
         ClearingFee = clearingFee;
         AmenitiesUpCharge = amenitiesUpCharge;
         TotalPrice = totalPrice;
@@ -29,13 +29,20 @@ public sealed class Booking : Entity
         CreatedOnUtc = createdOnUtc;
     }
 
-    public Guid ApartmentId { get; private set; }
+    public static readonly BookingStatus[] ActiveBookingStatuses =
+    {
+        BookingStatus.Reserved,
+        BookingStatus.Confirmed,
+        BookingStatus.Completed
+    };
 
-    public Guid UserId { get; private set; }
+    public ApartmentId ApartmentId { get; private set; }
+
+    public TenantId TenantId { get; private set; }
 
     public DateRange Duration { get; private set; }
 
-    public Money PricePorPeriod { get; private set; }
+    public Money PricePerPeriod { get; private set; }
 
     public Money ClearingFee { get; private set; }
 
@@ -53,11 +60,11 @@ public sealed class Booking : Entity
 
     public DateTime? CompletedOnUtc { get; private set; }
 
-    public DateTime CancelledOnUtc { get; private set; }
+    public DateTime? CancelledOnUtc { get; private set; }
 
     public static Booking Reserve(
         Apartment apartment,
-        Guid userId,
+        TenantId tenantId,
         DateRange duration,
         DateTime utcNow,
         PricingService pricingService)
@@ -65,9 +72,8 @@ public sealed class Booking : Entity
         var pricingDetails = pricingService.CalculatePrice(apartment, duration);
 
         var booking = new Booking(
-            Guid.NewGuid(),
-            apartment.Identifier,
-            userId,
+            apartment.Id,
+            tenantId,
             duration,
             pricingDetails.PriceForPeriod,
             pricingDetails.CleaningFee,
@@ -77,31 +83,31 @@ public sealed class Booking : Entity
             utcNow
         );
 
-        booking.RaiseDomainEvents(new BookingReservedEvent(booking.Identifier));
+        booking.RaiseDomainEvents(new BookingReservedEvent(booking.Id));
 
-        apartment.LastBookedOnUtc = utcNow;        
+        apartment.LastBookedOnUtc = utcNow;
 
         return booking;
     }
 
     public Result Confirm(DateTime utcNow)
     {
-        if(Status != BookingStatus.Reserved)
+        if (Status != BookingStatus.Reserved)
         {
             return Result.Failure(BookingErrors.NotPending);
-        }        
+        }
 
         Status = BookingStatus.Confirmed;
         ConfirmedOnUtc = utcNow;
 
-        RaiseDomainEvents(new BookingConfirmedEvent(Identifier));
+        RaiseDomainEvents(new BookingConfirmedEvent(Id));
 
         return Result.Success();
     }
 
     public Result Reject(DateTime utcNow)
     {
-        if(Status != BookingStatus.Reserved)
+        if (Status != BookingStatus.Reserved)
         {
             return Result.Failure(BookingErrors.NotPending);
         }
@@ -109,14 +115,14 @@ public sealed class Booking : Entity
         Status = BookingStatus.Rejected;
         RejectedOnUtc = utcNow;
 
-        RaiseDomainEvents(new BookingRejectedEvent(Identifier));
+        RaiseDomainEvents(new BookingRejectedEvent(Id));
 
         return Result.Success();
     }
 
     public Result Complete(DateTime utcNow)
     {
-        if(Status != BookingStatus.Confirmed)
+        if (Status != BookingStatus.Confirmed)
         {
             return Result.Failure(BookingErrors.NotConfirmed);
         }
@@ -124,20 +130,20 @@ public sealed class Booking : Entity
         Status = BookingStatus.Completed;
         CompletedOnUtc = utcNow;
 
-        RaiseDomainEvents(new BookingCompletedEvent(Identifier));
+        RaiseDomainEvents(new BookingCompletedEvent(Id));
 
         return Result.Success();
     }
 
     public Result Cancel(DateTime utcNow)
     {
-        if(Status != BookingStatus.Confirmed)
+        if (Status != BookingStatus.Confirmed)
         {
             return Result.Failure(BookingErrors.NotConfirmed);
         }
 
         var currentDate = DateOnly.FromDateTime(utcNow);
-        if(currentDate > Duration.Start)
+        if (currentDate > Duration.StartUtc)
         {
             return Result.Failure(BookingErrors.AlreadyStarted);
         }
@@ -145,8 +151,55 @@ public sealed class Booking : Entity
         Status = BookingStatus.Cancelled;
         CancelledOnUtc = utcNow;
 
-        RaiseDomainEvents(new BookingCancelledEvent(Identifier));
+        RaiseDomainEvents(new BookingCancelledEvent(Id));
 
         return Result.Success();
     }
+
+    #region Snapshot
+    public static Booking FromSnapshot(BookingSnapshot snapshot) =>
+        new(
+            new ApartmentId(snapshot.ApartmentId),
+            new TenantId(snapshot.TenantId),
+            DateRange.Create(snapshot.DurationStart, snapshot.DurationEnd).Value,
+            new Money(snapshot.PricePorPeriodAmount, snapshot.PricePerPeriodCurrencyId),
+            new Money(snapshot.ClearingFeeAmount, snapshot.ClearingFeeCurrencyId),
+            new Money(snapshot.AmenitiesUpChargeAmount, snapshot.AmenitiesUpChargeCurrencyCode),
+            new Money(snapshot.TotalPriceAmount, snapshot.TotalPriceCurrencyCode),
+            snapshot.Status,
+            snapshot.CreatedOnUtc
+        )
+        {
+            Id = new BookingId(snapshot.BookingId),
+            ConfirmedOnUtc = snapshot.ConfirmedOnUtc,
+            RejectedOnUtc = snapshot.RejectedOnUtc,
+            CompletedOnUtc = snapshot.CompletedOnUtc,
+            CancelledOnUtc = snapshot.CancelledOnUtc
+        };
+
+    public BookingSnapshot ToSnapshot() =>
+        new()
+        {
+            BookingId = Id.Value,
+            ApartmentId = ApartmentId.Value,
+            TenantId = TenantId.Value,
+            DurationStart = Duration.StartUtc,
+            DurationEnd = Duration.EndUtc,
+            PricePorPeriodAmount = PricePerPeriod.Amount,
+            PricePerPeriodCurrencyId = PricePerPeriod.Currency.Id,
+            ClearingFeeAmount = ClearingFee.Amount,
+            ClearingFeeCurrencyId = ClearingFee.Currency.Id,
+            AmenitiesUpChargeAmount = AmenitiesUpCharge.Amount,
+            AmenitiesUpChargeCurrencyCode = AmenitiesUpCharge.Currency.Id,
+            TotalPriceAmount = TotalPrice.Amount,
+            TotalPriceCurrencyCode = TotalPrice.Currency.Id,
+            Status = Status,
+            CreatedOnUtc = CreatedOnUtc,
+            ConfirmedOnUtc = ConfirmedOnUtc,
+            RejectedOnUtc = RejectedOnUtc,
+            CompletedOnUtc = CompletedOnUtc,
+            CancelledOnUtc = CancelledOnUtc
+        };
+
+    #endregion
 }
