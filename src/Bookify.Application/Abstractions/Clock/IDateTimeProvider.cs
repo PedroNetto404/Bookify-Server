@@ -1,4 +1,4 @@
-namespace Bookify.Application.Abstractions.Messaging.Clock;
+namespace Bookify.Application.Abstractions.Clock;
 
 public interface IDateTimeProvider
 {

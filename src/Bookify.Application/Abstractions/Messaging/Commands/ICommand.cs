@@ -1,7 +1,7 @@
-using Bookify.Domain.Abstractions;
+using Bookify.Domain.Utility.Results;
 using MediatR;
 
-namespace Bookify.Application.Abstractions.Messaging.Commands; 
+namespace Bookify.Application.Abstractions.Messaging.Commands;
 
 public interface ICommand : IRequest<Result>, IBaseCommand
 {

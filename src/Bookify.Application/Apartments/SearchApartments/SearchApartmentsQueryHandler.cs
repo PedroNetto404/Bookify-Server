@@ -1,5 +1,5 @@
 using Bookify.Application.Abstractions.Messaging.Queries;
-using Bookify.Domain.Abstractions;
+using Bookify.Domain.Utility.Results;
 
 namespace Bookify.Application.Apartments.SearchApartments;
 

@@ -17,4 +17,11 @@
     <ProjectReference Include="..\Bookify.Domain\Bookify.Domain.csproj" />
   </ItemGroup>
 
+
+
+  <ItemGroup>
+    <Folder Include="Authentication\KeycloakService\" />
+    <Folder Include="Authentication\Login\" />
+  </ItemGroup>
+
 </Project>

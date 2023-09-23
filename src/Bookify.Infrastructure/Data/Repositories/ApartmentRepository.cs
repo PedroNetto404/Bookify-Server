@@ -1,16 +1,16 @@
 ﻿using Bookify.Application.Apartments.SearchApartments;
 using Bookify.Domain.Apartments;
+using Bookify.Domain.Apartments.Enums;
 using Bookify.Infrastructure.Data.SqlConnectionFactory;
+using Bookify.Infrastructure.Data.UnitOfWork;
 using Dapper;
 
 namespace Bookify.Infrastructure.Data.Repositories;
 
 internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository, ISearchApartmentQueryProvider
 {
-    public ApartmentRepository(ISqlConnectionFactory sqlConnectionFactory) : base(sqlConnectionFactory)
-    {
-    }
-
+    public ApartmentRepository(IDbSession dbSession) : base(dbSession) { }
+    
     public async Task<Apartment?> GetByIdAsync(ApartmentId apartmentId)
     {
         const string query = $@"
@@ -29,56 +29,29 @@ internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository
             apt.AddressNumber AS {nameof(ApartmentSnapshot.AddressNumber)},
             apt.AddressPostalCode AS {nameof(ApartmentSnapshot.AddressPostalCode)},
             apt.PriceAmount AS {nameof(ApartmentSnapshot.PriceAmount)},
-            apt.PriceCurrencyId AS {nameof(ApartmentSnapshot.PriceCurrencyId)},
+            apt.PriceCurrency AS {nameof(ApartmentSnapshot.PriceCurrencyCode)},
             apt.CleaningFeeAmount AS {nameof(ApartmentSnapshot.CleaningFeeAmount)},
-            apt.CleaningFeeCurrencyId AS {nameof(ApartmentSnapshot.CleaningFeeCurrencyId)},
+            apt.CleaningFeeCurrency AS {nameof(ApartmentSnapshot.CleaningFeeCurrencyCode)},
             apt.LastBookedOnUtc AS {nameof(ApartmentSnapshot.LastBookedOnUtc)}
         FROM 
             Apartment apt
         WHERE 
             apt.ApartmentId = @ApartmentId";
 
-        using var connection = GetOpeningConnection();
-
-        var gridReader = await connection.QueryMultipleAsync(
+        var gridReader = await Connection.QueryMultipleAsync(
             query,
             new { ApartmentId = apartmentId });
 
         var apartmentSnapshot = await gridReader.ReadSingleOrDefaultAsync<ApartmentSnapshot>();
         apartmentSnapshot.Amenities = await gridReader.ReadAsync<Amenity>();
-        ;
 
         return Apartment.FromSnapshot(apartmentSnapshot);
     }
 
     public async Task AddAsync(Apartment apartment)
     {
-        using var connection = GetOpeningConnection();
-
-        var transaction = connection.BeginTransaction();
-
-        try
-        {
-            var failed =
-                await InsertApartment() != 1 ||
-                await InsertApartmentAmenities() != apartment.Amenities.Count;
-
-            if (failed)
-            {
-                transaction.Rollback();
-                throw new InvalidOperationException("Failed to insert apartment");
-            }
-
-            transaction.Commit();
-        }
-        catch
-        {
-            transaction.Rollback();
-            throw;
-        }
-
-        return;
-
+        await InsertApartment();
+        await InsertApartmentAmenities();
 
         async Task<int> InsertApartment()
         {
@@ -95,11 +68,14 @@ internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository
                 @{nameof(ApartmentSnapshot.AddressStreet)},
                 @{nameof(ApartmentSnapshot.AddressPostalCode)},
                 @{nameof(ApartmentSnapshot.PriceAmount)},
-                @{nameof(ApartmentSnapshot.PriceCurrencyId)},
+                @{nameof(ApartmentSnapshot.PriceCurrencyCode)},
                 @{nameof(ApartmentSnapshot.CleaningFeeAmount)},
-                @{nameof(ApartmentSnapshot.CleaningFeeCurrencyId)});";
+                @{nameof(ApartmentSnapshot.CleaningFeeCurrencyCode)});";
 
-            return await connection.ExecuteAsync(sql, apartment.ToSnapshot(), transaction);
+            return await Connection.ExecuteAsync(
+                sql, 
+                apartment.ToSnapshot(),
+                transaction: Transaction);
         }
 
         async Task<int> InsertApartmentAmenities()
@@ -108,28 +84,26 @@ internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository
             INSERT INTO ApartmentAmenity 
             VALUES(@ApartmentId, @AmenityCode)";
 
-            return await connection.ExecuteAsync(
+            return await Connection.ExecuteAsync(
                 sql,
                 apartment.Amenities.Select(amenity => new
                 {
                     apartment.Id,
                     AmenityCode = (int)amenity
                 }),
-                transaction);
+                transaction: Transaction);
         }
     }
 
     public async Task<IEnumerable<ApartmentResponse>> SearchAsync(DateOnly startDate, DateOnly endDate)
     {
-        using var connection = GetOpeningConnection();
-
         const string sql = @$"
         SELECT
             apt.ApartmentId AS {nameof(ApartmentResponse.Id)},
             apt.Name AS {nameof(ApartmentResponse.Name)},
             apt.Description AS {nameof(ApartmentResponse.Description)},
             apt.PriceAmount AS {nameof(ApartmentResponse.Price)},
-            apt.PriceCurrencyId AS {nameof(ApartmentResponse.Currency)},
+            apt.PriceCurrency AS {nameof(ApartmentResponse.CurrencyCode)},
             apt.AddressCountry AS {nameof(AddressResponse.Country)},
             apt.AddressState AS {nameof(AddressResponse.State)},
             apt.AddressPostalCode AS {nameof(AddressResponse.PostalCode)},
@@ -140,7 +114,7 @@ internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository
         WHERE 
             apt.ApartmentId = @ApartmentId";
 
-        return await connection.QueryAsync<ApartmentResponse>(
+        return await Connection.QueryAsync<ApartmentResponse>(
             sql,
             new
             {
@@ -149,4 +123,6 @@ internal sealed class ApartmentRepository : BaseRepository, IApartmentRepository
             }
         );
     }
+
+  
 }

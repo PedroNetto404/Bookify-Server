@@ -1,21 +1,17 @@
 ﻿using System.Data;
+using Bookify.Domain.Abstractions;
 using Bookify.Infrastructure.Data.SqlConnectionFactory;
+using Bookify.Infrastructure.Data.UnitOfWork;
 
 namespace Bookify.Infrastructure.Data.Repositories;
 
 internal abstract class BaseRepository
 {
-    private readonly ISqlConnectionFactory _sqlConnectionFactory;
+    private readonly IDbSession _dbSession;
 
-    protected BaseRepository(ISqlConnectionFactory sqlConnectionFactory)
-    {
-        _sqlConnectionFactory = sqlConnectionFactory;
-    }
+    protected BaseRepository(IDbSession dbSession) =>
+        _dbSession = dbSession;
 
-    protected IDbConnection GetOpeningConnection()
-    {
-        var connection = _sqlConnectionFactory.CreateConnection();
-        connection.Open();
-        return connection;
-    }
+    protected IDbConnection Connection => _dbSession.Connection;
+    protected IDbTransaction Transaction => _dbSession.Transaction; 
 }

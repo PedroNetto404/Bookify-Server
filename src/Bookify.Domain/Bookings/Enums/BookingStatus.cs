@@ -1,4 +1,4 @@
-namespace Bookify.Domain.Bookings;
+namespace Bookify.Domain.Bookings.Enums;
 public enum BookingStatus
 {
     Reserved = 1,

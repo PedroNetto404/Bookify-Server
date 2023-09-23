@@ -1,50 +1,28 @@
-//using Bookify.Application.Abstractions.Messaging.Queries;
-//using Bookify.Domain.Abstractions;
-//using Dapper;
+using Bookify.Application.Abstractions.Messaging.Queries;
+using Bookify.Domain.Abstractions;
+using Bookify.Domain.Bookings;
+using Bookify.Domain.Bookings.Abstractions;
+using Bookify.Domain.Bookings.ValueObjects;
+using Bookify.Domain.Errors;
+using Bookify.Domain.Utility.Results;
+using Dapper;
 
-//namespace Bookify.Application.Bookings.GetBooking;
+namespace Bookify.Application.Bookings.GetBooking;
 
-//internal sealed class GetBookingQueryHandler : IQueryHandler<GetBookingQuery, BookingResponse>
-//{
-//    private readonly ISqlConnectionFactory _sqlConnectionFactory;
+internal sealed class GetBookingQueryHandler : IQueryHandler<GetBookingQuery, BookingResponse>
+{
+    private readonly IBookingRepository _bookingRepository;
 
-//    public GetBookingQueryHandler(ISqlConnectionFactory sqlConnectionFactory)
-//    {
-//        _sqlConnectionFactory = sqlConnectionFactory;
-//    }
+    public GetBookingQueryHandler(IBookingRepository bookingRepository)
+    {
+        _bookingRepository = bookingRepository;
+    }
 
-//    public async Task<Result<BookingResponse>> Handle(GetBookingQuery request, CancellationToken cancellationToken)
-//    {
-//        using var conn = _sqlConnectionFactory.CreateConnection();
+    public async Task<Result<BookingResponse>> Handle(GetBookingQuery request, CancellationToken cancellationToken)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(new BookingId(request.BookingId));
+        if (booking is null) return DomainErrors.Booking.NotFound;
 
-//        const string sql = """
-//        SELECT
-//            id AS ApartmentId,
-//            apartment_id AS ApartmentId,
-//            user_id AS TenantId,
-//            status AS Status,
-//            price_for_period_amount AS PriceAmount,
-//            price_for_period_currency AS PriceCurrencyId,
-//            cleaning_fee_amount AS CleaningFeeAmount,
-//            cleaning_fee_currency AS CleaningFeeCurrencyId,
-//            amenities_up_charge_amount AS AmenitiesUpChargeAmount,
-//            amenities_up_charge_currency AS AmenitiesUpChargeCurrency,
-//            total_price_amount AS TotalPriceAmount,
-//            total_price_currency AS TotalPriceCurrency,
-//            duration_start AS DurationStart,
-//            duration_end AS DurationEnd,
-//            created_on_utc AS CreatedOnUtc
-//        FROM bookings
-//        WHERE id = @BookingId
-//        """;
-
-//        var booking = await conn.QueryFirstOrDefaultAsync<BookingResponse>(
-//            sql,
-//            new
-//            {
-//                request.BookingId
-//            });
-
-//        return booking;
-//    }
-//}
+        return Result.Success<BookingResponse>(booking);
+    }
+}

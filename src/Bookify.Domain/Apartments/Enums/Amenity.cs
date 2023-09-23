@@ -1,4 +1,4 @@
-namespace Bookify.Domain.Apartments;
+namespace Bookify.Domain.Apartments.Enums;
 
 public enum Amenity
 {

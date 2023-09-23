@@ -1,6 +1,6 @@
-using Bookify.Domain.Abstractions;
+using Bookify.Domain.Utility.Results;
 
-namespace Bookify.Domain.Bookings;
+namespace Bookify.Domain.Bookings.ValueObjects;
 public record DateRange
 {
     private DateRange(DateOnly start, DateOnly end) =>

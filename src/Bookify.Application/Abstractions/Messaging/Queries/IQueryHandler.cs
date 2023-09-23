@@ -1,4 +1,4 @@
-using Bookify.Domain.Abstractions;
+using Bookify.Domain.Utility.Results;
 using MediatR;
 
 namespace Bookify.Application.Abstractions.Messaging.Queries;

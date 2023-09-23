@@ -1,4 +1,4 @@
-namespace Bookify.Domain.Apartments;
+namespace Bookify.Domain.Apartments.ValueObjects;
 
 /// <summary>
 /// ISO 4217 currency code
@@ -32,4 +32,6 @@ public record Currency
     public static implicit operator Currency(string code) => FromCode(code);
 
     public static implicit operator Currency(int id) => FromId(id);
+
+    public static implicit operator string(Currency currency) => currency.Code;
 }

@@ -1,3 +1,5 @@
+using Bookify.Domain.Abstractions;
+
 namespace Bookify.Domain.Bookings;
 
 public static class BookingErrors

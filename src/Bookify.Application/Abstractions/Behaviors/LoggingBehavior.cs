@@ -2,7 +2,7 @@ using Bookify.Application.Abstractions.Messaging.Commands;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Namespace;
+namespace Bookify.Application.Abstractions.Behaviors;
 public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IBaseCommand
 {

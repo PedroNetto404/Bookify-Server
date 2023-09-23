@@ -1,3 +1,5 @@
+using Bookify.Domain.Apartments.Enums;
+
 namespace Bookify.Domain.Apartments;
 
 public record ApartmentSnapshot
@@ -11,9 +13,9 @@ public record ApartmentSnapshot
     public string AddressStreet { get; set; } = null!;
     public string AddressNumber { get; set; } = null!;
     public decimal PriceAmount { get; set; }
-    public int PriceCurrencyId { get; set; }
+    public int PriceCurrencyCode { get; set; }
     public decimal CleaningFeeAmount { get; set; }
-    public int CleaningFeeCurrencyId { get; set; }
+    public int CleaningFeeCurrencyCode { get; set; }
     public DateTime? LastBookedOnUtc { get; set; }
     public IEnumerable<Amenity> Amenities { get; set; } = null!;
     public string AddressPostalCode { get; set; } = null!;

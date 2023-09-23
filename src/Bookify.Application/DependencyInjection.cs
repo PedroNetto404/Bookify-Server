@@ -1,6 +1,7 @@
+using Bookify.Application.Abstractions.Behaviors;
 using Bookify.Domain.Bookings;
+using Bookify.Domain.Bookings.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Namespace;
 
 namespace Bookify.Application; 
 

@@ -1,4 +1,7 @@
 using Bookify.Domain.Abstractions;
+using Bookify.Domain.Apartments.Enums;
+using Bookify.Domain.Apartments.ValueObjects;
+using Bookify.Domain.Shared;
 
 namespace Bookify.Domain.Apartments;
 
@@ -31,7 +34,6 @@ public sealed class Apartment : AggregateRoot<ApartmentId>
     public DateTime? LastBookedOnUtc { get; internal set; }
     public IReadOnlyCollection<Amenity> Amenities => _amenities.AsReadOnly();
 
-
     #region Snapshot
 
     public static Apartment FromSnapshot(ApartmentSnapshot snapshot) =>
@@ -44,8 +46,8 @@ public sealed class Apartment : AggregateRoot<ApartmentId>
                 snapshot.AddressCity,
                 snapshot.AddressStreet,
                 snapshot.AddressPostalCode),
-            new Money(snapshot.PriceAmount, snapshot.PriceCurrencyId),
-            new Money(snapshot.CleaningFeeAmount, snapshot.CleaningFeeCurrencyId),
+            new Money(snapshot.PriceAmount, snapshot.PriceCurrencyCode),
+            new Money(snapshot.CleaningFeeAmount, snapshot.CleaningFeeCurrencyCode),
             snapshot.Amenities.ToArray())
         {
             LastBookedOnUtc = snapshot.LastBookedOnUtc
@@ -62,9 +64,9 @@ public sealed class Apartment : AggregateRoot<ApartmentId>
             AddressCity = Address.City,
             AddressStreet = Address.Street,
             PriceAmount = Price.Amount,
-            PriceCurrencyId = Price.Currency.Id,
+            PriceCurrencyCode = Price.Currency.Id,
             CleaningFeeAmount = CleaningFee.Amount,
-            CleaningFeeCurrencyId = CleaningFee.Currency.Id,
+            CleaningFeeCurrencyCode = CleaningFee.Currency.Id,
         };
 
     #endregion

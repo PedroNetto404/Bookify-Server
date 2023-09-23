@@ -1,7 +1,13 @@
 using Bookify.Domain.Abstractions;
 using Bookify.Domain.Apartments;
+using Bookify.Domain.Bookings.Enums;
 using Bookify.Domain.Bookings.Events;
-using Bookify.Domain.Users;
+using Bookify.Domain.Bookings.Services;
+using Bookify.Domain.Bookings.ValueObjects;
+using Bookify.Domain.Shared;
+using Bookify.Domain.Tenants;
+using Bookify.Domain.Tenants.ValueObjects;
+using Bookify.Domain.Utility.Results;
 
 namespace Bookify.Domain.Bookings;
 
@@ -29,7 +35,7 @@ public sealed class Booking : AggregateRoot<BookingId>
         CreatedOnUtc = createdOnUtc;
     }
 
-    public static readonly BookingStatus[] ActiveBookingStatuses =
+    public static readonly BookingStatus[] ActiveStatuses =
     {
         BookingStatus.Reserved,
         BookingStatus.Confirmed,

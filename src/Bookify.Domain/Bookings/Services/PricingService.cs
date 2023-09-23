@@ -1,7 +1,9 @@
 using Bookify.Domain.Apartments;
+using Bookify.Domain.Apartments.Enums;
 using Bookify.Domain.Bookings.ValueObjects;
+using Bookify.Domain.Shared;
 
-namespace Bookify.Domain.Bookings;
+namespace Bookify.Domain.Bookings.Services;
 public class PricingService
 {
     public PricingDetails CalculatePrice(Apartment apartment, DateRange period)
